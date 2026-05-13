@@ -7,8 +7,11 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import {
+  AdminLoginDto,
   CreateCommentDto,
   CreateKeepDto,
   CreateReviewDto,
@@ -19,15 +22,31 @@ import {
   UpdateReviewDto,
   UpdateShopDto,
 } from './dto';
+import { AuthService } from './auth.service';
+import { CommentAuthorType } from './entities';
 import { RestaurantService } from './restaurant.service';
 
 @Controller()
 export class RestaurantController {
-  constructor(private readonly restaurantService: RestaurantService) {}
+  constructor(
+    private readonly restaurantService: RestaurantService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Get('health')
   health() {
     return { ok: true };
+  }
+
+  @Post('auth/admin/login')
+  adminLogin(@Body() dto: AdminLoginDto) {
+    return this.authService.adminLogin(dto.email, dto.password);
+  }
+
+  @Get('admin/summary')
+  adminSummary(@Req() request: Request) {
+    this.authService.assertAdmin(this.authService.getRequestUser(request));
+    return this.restaurantService.adminSummary();
   }
 
   @Post('users')
@@ -69,17 +88,24 @@ export class RestaurantController {
   updateShop(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateShopDto,
+    @Req() request: Request,
   ) {
+    this.authService.assertAdmin(this.authService.getRequestUser(request));
     return this.restaurantService.updateShop(id, dto);
   }
 
   @Delete('shops/:id')
-  deleteShop(@Param('id', ParseIntPipe) id: number) {
+  deleteShop(@Param('id', ParseIntPipe) id: number, @Req() request: Request) {
+    this.authService.assertAdmin(this.authService.getRequestUser(request));
     return this.restaurantService.deleteShop(id);
   }
 
   @Post('keeps')
-  createKeep(@Body() dto: CreateKeepDto) {
+  createKeep(@Body() dto: CreateKeepDto, @Req() request: Request) {
+    this.authService.assertAdminOrSelf(
+      this.authService.getRequestUser(request),
+      dto.userId,
+    );
     return this.restaurantService.createKeep(dto);
   }
 
@@ -92,12 +118,21 @@ export class RestaurantController {
   deleteKeep(
     @Param('userId', ParseIntPipe) userId: number,
     @Param('shopId', ParseIntPipe) shopId: number,
+    @Req() request: Request,
   ) {
+    this.authService.assertAdminOrSelf(
+      this.authService.getRequestUser(request),
+      userId,
+    );
     return this.restaurantService.deleteKeep(userId, shopId);
   }
 
   @Post('reviews')
-  createReview(@Body() dto: CreateReviewDto) {
+  createReview(@Body() dto: CreateReviewDto, @Req() request: Request) {
+    this.authService.assertAdminOrSelf(
+      this.authService.getRequestUser(request),
+      dto.userId,
+    );
     return this.restaurantService.createReview(dto);
   }
 
@@ -110,22 +145,45 @@ export class RestaurantController {
   updateReview(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateReviewDto,
+    @Req() request: Request,
   ) {
-    return this.restaurantService.updateReview(id, dto);
+    return this.restaurantService.findReviewOwnerId(id).then((ownerId) => {
+      this.authService.assertAdminOrSelf(
+        this.authService.getRequestUser(request),
+        ownerId,
+      );
+      return this.restaurantService.updateReview(id, dto);
+    });
   }
 
   @Delete('reviews/:id')
-  deleteReview(@Param('id', ParseIntPipe) id: number) {
-    return this.restaurantService.deleteReview(id);
+  deleteReview(@Param('id', ParseIntPipe) id: number, @Req() request: Request) {
+    return this.restaurantService.findReviewOwnerId(id).then((ownerId) => {
+      this.authService.assertAdminOrSelf(
+        this.authService.getRequestUser(request),
+        ownerId,
+      );
+      return this.restaurantService.deleteReview(id);
+    });
   }
 
   @Post('comments')
-  createComment(@Body() dto: CreateCommentDto) {
+  createComment(@Body() dto: CreateCommentDto, @Req() request: Request) {
+    if (dto.authorType === CommentAuthorType.User) {
+      this.authService.assertAdminOrSelf(
+        this.authService.getRequestUser(request),
+        dto.authorId,
+      );
+    }
     return this.restaurantService.createComment(dto);
   }
 
   @Post('visits')
-  createVisit(@Body() dto: CreateVisitDto) {
+  createVisit(@Body() dto: CreateVisitDto, @Req() request: Request) {
+    this.authService.assertAdminOrSelf(
+      this.authService.getRequestUser(request),
+      dto.userId,
+    );
     return this.restaurantService.createVisit(dto);
   }
 

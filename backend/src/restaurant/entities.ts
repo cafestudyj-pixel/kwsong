@@ -9,6 +9,11 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export enum UserRole {
+  User = 'USER',
+  Admin = 'ADMIN',
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
@@ -19,6 +24,9 @@ export class User {
 
   @Column({ length: 160, unique: true })
   email: string;
+
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.User })
+  role: UserRole;
 
   @OneToMany(() => Keep, (keep) => keep.user)
   keeps: Keep[];

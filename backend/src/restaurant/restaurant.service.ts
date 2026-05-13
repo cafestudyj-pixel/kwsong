@@ -47,6 +47,39 @@ export class RestaurantService {
     return this.users.find({ order: { createdAt: 'DESC' } });
   }
 
+  async adminSummary() {
+    const [
+      userCount,
+      shopCount,
+      reviewCount,
+      visitCount,
+      recentShops,
+      recentReviews,
+    ] = await Promise.all([
+      this.users.count(),
+      this.shops.count(),
+      this.reviews.count(),
+      this.visits.count(),
+      this.shops.find({ order: { createdAt: 'DESC' }, take: 5 }),
+      this.reviews.find({
+        relations: { shop: true },
+        order: { createdAt: 'DESC' },
+        take: 5,
+      }),
+    ]);
+
+    return {
+      counts: {
+        users: userCount,
+        shops: shopCount,
+        reviews: reviewCount,
+        visits: visitCount,
+      },
+      recentShops,
+      recentReviews,
+    };
+  }
+
   createOwner(dto: CreateShopOwnerDto) {
     return this.owners.save(this.owners.create(dto));
   }
@@ -156,6 +189,11 @@ export class RestaurantService {
     if (dto.rating !== undefined) review.rating = dto.rating;
     if (dto.content !== undefined) review.content = dto.content;
     return this.reviews.save(review);
+  }
+
+  async findReviewOwnerId(id: number) {
+    const review = await this.findReviewOrThrow(id);
+    return review.user.id;
   }
 
   async deleteReview(id: number) {

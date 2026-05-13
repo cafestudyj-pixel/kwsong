@@ -8,6 +8,7 @@ import {
   Plus,
   RefreshCw,
   Save,
+  ShieldCheck,
   Star,
   Store,
   Trash2,
@@ -27,6 +28,7 @@ type User = {
   id: number
   name: string
   email: string
+  role: 'USER' | 'ADMIN'
 }
 
 type ShopOwner = User
@@ -85,6 +87,26 @@ type ConfirmDialogState = {
   onConfirm: () => Promise<void>
 }
 
+type AdminSession = {
+  accessToken: string
+  user: {
+    id: number | null
+    email: string
+    role: 'ADMIN'
+  }
+}
+
+type AdminSummary = {
+  counts: {
+    users: number
+    shops: number
+    reviews: number
+    visits: number
+  }
+  recentShops: Shop[]
+  recentReviews: (Review & { shop: Shop })[]
+}
+
 const initialUser = { name: '', email: '' }
 const initialOwner = { name: '', email: '' }
 const initialShop = { name: '', category: '', address: '', description: '', ownerId: '' }
@@ -108,8 +130,13 @@ function todayInSeoul() {
 const initialVisit = { shopId: '', visitedAt: todayInSeoul(), memo: '' }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = window.localStorage.getItem('adminToken')
   const response = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options?.headers,
+    },
     ...options,
   })
 
@@ -121,7 +148,11 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json()
 }
 
+const userAuthHeaders = (userId: string | number | null | undefined): Record<string, string> =>
+  userId ? { 'X-User-Id': String(userId) } : {}
+
 function App() {
+  const isAdminRoute = window.location.pathname === '/admin'
   const [users, setUsers] = useState<User[]>([])
   const [owners, setOwners] = useState<ShopOwner[]>([])
   const [shops, setShops] = useState<Shop[]>([])
@@ -142,6 +173,13 @@ function App() {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
   const [status, setStatus] = useState('백엔드와 연결을 준비하고 있습니다.')
   const [loading, setLoading] = useState(false)
+  const [adminSession, setAdminSession] = useState<AdminSession | null>(() => {
+    const token = window.localStorage.getItem('adminToken')
+    const email = window.localStorage.getItem('adminEmail')
+    return token && email ? { accessToken: token, user: { id: null, email, role: 'ADMIN' } } : null
+  })
+
+  const isAdmin = adminSession?.user.role === 'ADMIN'
 
   const selectedShop = useMemo(
     () => shops.find((shop) => shop.id === selectedShopId) ?? shops[0],
@@ -253,7 +291,10 @@ function App() {
     const userId = requireCurrentUserId()
     if (!userId) return
     if (keptShopIds.has(shopId)) {
-      await request(`/users/${userId}/keeps/${shopId}`, { method: 'DELETE' })
+      await request(`/users/${userId}/keeps/${shopId}`, {
+        method: 'DELETE',
+        headers: userAuthHeaders(userId),
+      })
       await refresh()
       await loadUserActivity(String(userId))
       setStatus(`${currentUser?.name ?? 'User'}의 저장 목록에서 해제했습니다.`)
@@ -261,6 +302,7 @@ function App() {
     }
     await request('/keeps', {
       method: 'POST',
+      headers: userAuthHeaders(userId),
       body: JSON.stringify({ userId, shopId }),
     })
     await refresh()
@@ -338,6 +380,7 @@ function App() {
       () =>
         request(`/reviews/${reviewId}`, {
           method: 'PUT',
+          headers: userAuthHeaders(currentUserId),
           body: JSON.stringify({
             rating: Number(reviewEditForm.rating),
             content: reviewEditForm.content,
@@ -354,12 +397,19 @@ function App() {
       message: '이 리뷰를 삭제할까요? 달린 댓글도 함께 삭제됩니다.',
       confirmLabel: '리뷰 삭제',
       onConfirm: async () => {
-        await request(`/reviews/${review.id}`, { method: 'DELETE' })
+        await request(`/reviews/${review.id}`, {
+          method: 'DELETE',
+          headers: userAuthHeaders(currentUserId),
+        })
         await refresh()
         await loadUserActivity(currentUserId)
         setStatus('리뷰를 삭제했습니다.')
       },
     })
+  }
+
+  if (isAdminRoute) {
+    return <AdminPage session={adminSession} onSessionChange={setAdminSession} />
   }
 
   return (
@@ -481,6 +531,7 @@ function App() {
                   () =>
                     request('/reviews', {
                       method: 'POST',
+                      headers: userAuthHeaders(userId),
                       body: JSON.stringify({
                         ...reviewForm,
                         userId,
@@ -531,6 +582,7 @@ function App() {
                   () =>
                     request('/comments', {
                       method: 'POST',
+                      headers: userAuthHeaders(commentForm.authorType === 'USER' ? authorId : currentUserId),
                       body: JSON.stringify({
                         ...commentForm,
                         reviewId: Number(commentForm.reviewId),
@@ -589,6 +641,7 @@ function App() {
                   () =>
                     request('/visits', {
                       method: 'POST',
+                      headers: userAuthHeaders(userId),
                       body: JSON.stringify({
                         ...visitForm,
                         userId,
@@ -740,14 +793,18 @@ function App() {
                       <p>{selectedShop.address}</p>
                     </div>
                     <div className="detail-actions">
-                      <button className="secondary-button" type="button" onClick={startEditingShop}>
-                        <Pencil size={16} />
-                        수정
-                      </button>
-                      <button className="danger-button" type="button" onClick={deleteShop} disabled={loading}>
-                        <Trash2 size={16} />
-                        삭제
-                      </button>
+                      {isAdmin && (
+                        <>
+                          <button className="secondary-button" type="button" onClick={startEditingShop}>
+                            <Pencil size={16} />
+                            수정
+                          </button>
+                          <button className="danger-button" type="button" onClick={deleteShop} disabled={loading}>
+                            <Trash2 size={16} />
+                            삭제
+                          </button>
+                        </>
+                      )}
                       <button
                         className={selectedShopIsKept ? 'secondary-button' : 'keep-button'}
                         type="button"
@@ -885,6 +942,179 @@ function App() {
             </div>
           </section>
         </div>
+      )}
+    </main>
+  )
+}
+
+function AdminPage({
+  session,
+  onSessionChange,
+}: {
+  session: AdminSession | null
+  onSessionChange: (session: AdminSession | null) => void
+}) {
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' })
+  const [summary, setSummary] = useState<AdminSummary | null>(null)
+  const [message, setMessage] = useState(session ? '관리자 데이터를 불러오고 있습니다.' : '관리자로 로그인해주세요.')
+  const [loading, setLoading] = useState(false)
+
+  const loadSummary = useCallback(async () => {
+    setLoading(true)
+    try {
+      const nextSummary = await request<AdminSummary>('/admin/summary')
+      setSummary(nextSummary)
+      setMessage('관리자 데이터를 불러왔습니다.')
+    } catch (error) {
+      setSummary(null)
+      setMessage(error instanceof Error ? error.message : '관리자 데이터를 불러오지 못했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (session) {
+      queueMicrotask(() => void loadSummary())
+    }
+  }, [session, loadSummary])
+
+  const login = async (event: FormEvent) => {
+    event.preventDefault()
+    setLoading(true)
+    try {
+      const nextSession = await request<AdminSession>('/auth/admin/login', {
+        method: 'POST',
+        body: JSON.stringify(loginForm),
+      })
+      window.localStorage.setItem('adminToken', nextSession.accessToken)
+      window.localStorage.setItem('adminEmail', nextSession.user.email)
+      onSessionChange(nextSession)
+      setMessage('관리자로 로그인했습니다.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '관리자 로그인에 실패했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const logout = () => {
+    window.localStorage.removeItem('adminToken')
+    window.localStorage.removeItem('adminEmail')
+    onSessionChange(null)
+    setSummary(null)
+    setMessage('로그아웃했습니다.')
+  }
+
+  if (!session) {
+    return (
+      <main className="app-shell admin-shell">
+        <section className="admin-login-panel">
+          <div className="panel-title">
+            <ShieldCheck />
+            <h1>관리자 로그인</h1>
+          </div>
+          <form onSubmit={login}>
+            <Input
+              label="이메일"
+              value={loginForm.email}
+              onChange={(email) => setLoginForm({ ...loginForm, email })}
+            />
+            <Input
+              label="비밀번호"
+              type="password"
+              value={loginForm.password}
+              onChange={(password) => setLoginForm({ ...loginForm, password })}
+            />
+            <Submit disabled={loading}>로그인</Submit>
+          </form>
+          <p className="status-line">{message}</p>
+          <a className="admin-link" href="/">
+            서비스 화면으로 이동
+          </a>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="app-shell admin-shell">
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">Admin</p>
+          <h1>서비스 관리자</h1>
+          <p>{session.user.email}</p>
+        </div>
+        <div className="topbar-actions">
+          <button className="secondary-button" type="button" onClick={loadSummary} disabled={loading}>
+            <RefreshCw size={16} />
+            새로고침
+          </button>
+          <button className="danger-button" type="button" onClick={logout}>
+            로그아웃
+          </button>
+          <a className="secondary-button admin-link-button" href="/">
+            서비스 화면
+          </a>
+        </div>
+      </header>
+
+      <div className="status-line">{message}</div>
+
+      {summary ? (
+        <>
+          <section className="summary-band">
+            <Metric icon={<UserRound />} label="전체 유저" value={summary.counts.users} />
+            <Metric icon={<Store />} label="전체 맛집" value={summary.counts.shops} />
+            <Metric icon={<Star />} label="전체 리뷰" value={summary.counts.reviews} />
+            <Metric icon={<Utensils />} label="전체 방문" value={summary.counts.visits} />
+          </section>
+
+          <section className="admin-grid">
+            <article className="detail">
+              <div className="detail-header">
+                <div>
+                  <p className="eyebrow">Recent Shops</p>
+                  <h2>최근 등록된 맛집</h2>
+                </div>
+              </div>
+              <ul className="admin-list">
+                {summary.recentShops.map((shop) => (
+                  <li key={shop.id}>
+                    <strong>{shop.name}</strong>
+                    <span>
+                      {shop.category} · {shop.owner.name}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+
+            <article className="detail">
+              <div className="detail-header">
+                <div>
+                  <p className="eyebrow">Recent Reviews</p>
+                  <h2>최근 작성된 리뷰</h2>
+                </div>
+              </div>
+              <ul className="admin-list">
+                {summary.recentReviews.map((review) => (
+                  <li key={review.id}>
+                    <strong>
+                      {review.shop.name} · {review.rating}점
+                    </strong>
+                    <span>{review.content}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          </section>
+        </>
+      ) : (
+        <article className="detail empty-state">
+          <ShieldCheck size={34} />
+          <h2>관리자 데이터가 없습니다.</h2>
+        </article>
       )}
     </main>
   )

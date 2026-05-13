@@ -617,6 +617,72 @@ output {
   margin-top: 4px;
 }
 
+.admin-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.admin-login-panel {
+  width: min(440px, 100%);
+  display: grid;
+  gap: 16px;
+  margin: 12vh auto 0;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.admin-login-panel .panel-title {
+  align-items: flex-start;
+  margin-bottom: 0;
+}
+
+.admin-login-panel .panel-title h1 {
+  font-size: 26px;
+}
+
+.admin-link,
+.admin-link-button {
+  color: var(--brand);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.admin-link-button {
+  color: var(--text);
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.admin-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-list li {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  background: var(--surface-soft);
+  border: 1px solid #e3ddd1;
+  border-radius: 8px;
+}
+
+.admin-list span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 @media (max-width: 1200px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -664,6 +730,7 @@ output {
 
   .summary-band,
   .forms,
+  .admin-grid,
   .activity-grid,
   .detail-metrics,
   .review-edit-grid,

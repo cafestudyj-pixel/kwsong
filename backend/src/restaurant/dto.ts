@@ -24,6 +24,16 @@ export class CreateUserDto {
   email: string;
 }
 
+export class AdminLoginDto {
+  @IsEmail()
+  @MaxLength(160)
+  email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
+
 export class CreateShopOwnerDto extends CreateUserDto {}
 
 export class CreateShopDto {

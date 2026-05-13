@@ -12,6 +12,31 @@ CREATE DATABASE IF NOT EXISTS matzip
   COLLATE utf8mb4_unicode_ci;
 ```
 
+백엔드 환경변수 예시는 `backend/.env.example`을 참고해 `backend/.env`에 설정합니다.
+
+```env
+PORT=3000
+FRONTEND_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=$2b$10$your_bcrypt_hash
+JWT_SECRET=change-this-secret
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=12341234
+DB_NAME=matzip
+DB_SYNC=true
+```
+
+관리자 비밀번호는 평문이 아니라 bcrypt 해시로 넣습니다.
+
+```powershell
+cd backend
+node -e "const bcrypt=require('bcryptjs'); bcrypt.hash('원하는비밀번호', 10).then(console.log)"
+```
+
+실행:
+
 ```powershell
 cd backend
 npm install
@@ -24,18 +49,22 @@ npm install
 npm run dev
 ```
 
+관리자 페이지는 `/admin` 경로에서 접근합니다.
+
 ## Railway Backend
 
-1. Railway에서 새 프로젝트를 만듭니다.
-2. MySQL 서비스를 추가합니다.
-3. GitHub 저장소에서 `backend` 폴더를 백엔드 서비스로 배포합니다.
-4. 백엔드 서비스 환경변수를 설정합니다.
+1. Railway에서 프로젝트를 만들고 MySQL 서비스를 추가합니다.
+2. GitHub 저장소에서 `backend` 폴더를 백엔드 서비스로 배포합니다.
+3. 백엔드 서비스 환경변수를 설정합니다.
 
 Required:
 
 ```env
 PORT=3000
 FRONTEND_ORIGIN=https://your-vercel-domain.vercel.app
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=$2b$10$your_bcrypt_hash
+JWT_SECRET=change-this-secret
 DB_SYNC=true
 ```
 

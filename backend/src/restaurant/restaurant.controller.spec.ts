@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { AuthService } from './auth.service';
 import { RestaurantController } from './restaurant.controller';
 import { RestaurantService } from './restaurant.service';
 
@@ -11,6 +12,10 @@ describe('RestaurantController', () => {
       providers: [
         {
           provide: RestaurantService,
+          useValue: {},
+        },
+        {
+          provide: AuthService,
           useValue: {},
         },
       ],
