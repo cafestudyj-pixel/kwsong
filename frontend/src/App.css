@@ -621,6 +621,12 @@ output {
   .workspace {
     grid-template-columns: 1fr;
   }
+
+  .forms {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 @media (max-width: 760px) {
