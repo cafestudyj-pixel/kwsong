@@ -2,6 +2,7 @@ import type { FormEvent, ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Building2,
+  Database,
   Heart,
   MessageSquare,
   Pencil,
@@ -1109,6 +1110,8 @@ function AdminPage({
               </ul>
             </article>
           </section>
+
+          <ErdSection />
         </>
       ) : (
         <article className="detail empty-state">
@@ -1117,6 +1120,106 @@ function AdminPage({
         </article>
       )}
     </main>
+  )
+}
+
+const erdEntities = [
+  {
+    name: 'User',
+    description: '맛집을 저장하고 리뷰와 방문 기록을 남기는 사용자',
+    fields: ['id', 'name', 'email', 'role'],
+    relations: ['Keep', 'Review', 'Comment', 'Visit'],
+  },
+  {
+    name: 'ShopOwner',
+    description: '맛집 사장님 계정',
+    fields: ['id', 'name', 'email'],
+    relations: ['Shop', 'Comment'],
+  },
+  {
+    name: 'Shop',
+    description: '사용자가 저장하고 방문하는 맛집',
+    fields: ['id', 'name', 'category', 'address', 'description'],
+    relations: ['ShopOwner', 'Keep', 'Review', 'Comment', 'Visit'],
+  },
+  {
+    name: 'Keep',
+    description: 'User가 Shop을 저장한 기록',
+    fields: ['id', 'userId', 'shopId'],
+    relations: ['User', 'Shop'],
+  },
+  {
+    name: 'Review',
+    description: 'User가 Shop에 남긴 리뷰',
+    fields: ['id', 'rating', 'content', 'userId', 'shopId'],
+    relations: ['User', 'Shop', 'Comment'],
+  },
+  {
+    name: 'Comment',
+    description: 'User 또는 ShopOwner가 리뷰/맛집에 남기는 댓글',
+    fields: ['id', 'authorType', 'authorId', 'content', 'shopId', 'reviewId'],
+    relations: ['User', 'ShopOwner', 'Shop', 'Review'],
+  },
+  {
+    name: 'Visit',
+    description: 'User의 Shop 방문 기록',
+    fields: ['id', 'userId', 'shopId', 'visitedAt'],
+    relations: ['User', 'Shop'],
+  },
+]
+
+const erdRelations = [
+  'ShopOwner 1 : N Shop',
+  'User 1 : N Keep',
+  'Shop 1 : N Keep',
+  'User 1 : N Review',
+  'Shop 1 : N Review',
+  'User 1 : N Visit',
+  'Shop 1 : N Visit',
+  'Shop 1 : N Comment',
+  'Review 1 : N Comment',
+  'User 또는 ShopOwner 1 : N Comment',
+]
+
+function ErdSection() {
+  return (
+    <section className="detail erd-section">
+      <div className="detail-header">
+        <div>
+          <p className="eyebrow">ERD / Schema</p>
+          <h2>엔티티 관계도</h2>
+        </div>
+        <Database size={22} />
+      </div>
+
+      <div className="erd-layout">
+        <div className="erd-cards">
+          {erdEntities.map((entity) => (
+            <article className="erd-card" key={entity.name}>
+              <div className="erd-card-title">
+                <strong>{entity.name}</strong>
+                <span>{entity.relations.length} relations</span>
+              </div>
+              <p>{entity.description}</p>
+              <div className="erd-fields">
+                {entity.fields.map((field) => (
+                  <code key={field}>{field}</code>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <aside className="erd-relations">
+          <h3>관계 요약</h3>
+          <ul>
+            {erdRelations.map((relation) => (
+              <li key={relation}>{relation}</li>
+            ))}
+          </ul>
+        </aside>
+      </div>
+    </section>
   )
 }
 

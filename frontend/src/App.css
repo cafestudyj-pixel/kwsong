@@ -683,6 +683,107 @@ output {
   line-height: 1.5;
 }
 
+.erd-section {
+  margin-top: 16px;
+}
+
+.erd-section .detail-header svg {
+  color: var(--brand);
+}
+
+.erd-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 14px;
+}
+
+.erd-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.erd-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  background: var(--surface-soft);
+  border: 1px solid #e3ddd1;
+  border-radius: 8px;
+}
+
+.erd-card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.erd-card-title strong {
+  font-size: 16px;
+}
+
+.erd-card-title span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.erd-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.erd-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.erd-fields code {
+  padding: 5px 7px;
+  color: #22303c;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.erd-relations {
+  align-self: start;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.erd-relations h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.erd-relations ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.erd-relations li {
+  padding: 8px;
+  color: var(--muted);
+  background: var(--surface-soft);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
 @media (max-width: 1200px) {
   .workspace {
     grid-template-columns: 1fr;
@@ -731,6 +832,8 @@ output {
   .summary-band,
   .forms,
   .admin-grid,
+  .erd-layout,
+  .erd-cards,
   .activity-grid,
   .detail-metrics,
   .review-edit-grid,
