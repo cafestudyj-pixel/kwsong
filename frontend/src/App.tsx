@@ -435,6 +435,10 @@ function App() {
           <button className="icon-button" type="button" onClick={refresh} disabled={loading} title="새로고침">
             <RefreshCw size={18} />
           </button>
+          <a className="secondary-button admin-link-button" href="/admin">
+            <ShieldCheck size={16} />
+            관리자
+          </a>
         </div>
       </header>
 
